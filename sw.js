@@ -1,9 +1,10 @@
-const CACHE = 'hello-nose-v3';
+const CACHE = 'hello-nose-v4';
 const PRECACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './hello-audio.js',
   './manifest.json',
   './icons/nose.svg',
 ];
@@ -26,13 +27,10 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   event.respondWith(
-    caches.match(req).then((hit) => {
-      if (hit) return hit;
-      return fetch(req).then((res) => {
-        const copy = res.clone();
-        if (res.ok) caches.open(CACHE).then((c) => c.put(req, copy));
-        return res;
-      }).catch(() => caches.match('./index.html'));
-    })
+    fetch(req).then((res) => {
+      const copy = res.clone();
+      if (res.ok) caches.open(CACHE).then((c) => c.put(req, copy));
+      return res;
+    }).catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
   );
 });
