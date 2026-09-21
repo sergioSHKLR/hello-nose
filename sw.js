@@ -1,4 +1,4 @@
-const CACHE = 'hello-nose-v2';
+const CACHE = 'hello-nose-v3';
 const PRECACHE = [
   './',
   './index.html',
