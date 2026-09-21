@@ -13,7 +13,6 @@ const wakeBox = $('wakelock');
 const intervalFields = $('interval-fields');
 const randomFields = $('random-fields');
 const clip = $('hello-audio');
-if (typeof HELLO_AUDIO_SRC === 'string') clip.src = HELLO_AUDIO_SRC;
 
 const KEY = 'hello-nose-settings-v1';
 
@@ -23,6 +22,83 @@ let wakeLock = null;
 let playCount = 0;
 let mode = 'interval';
 let ctx;
+let audioBuf;
+let blobUrl;
+let decodeP;
+
+function dataToBytes(src) {
+  const raw = String(src || '').replace(/^data:[^,]*,/, '');
+  const bin = atob(raw);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function blobSrc() {
+  if (blobUrl) return blobUrl;
+  if (typeof HELLO_AUDIO_SRC !== 'string') return '';
+  const bytes = dataToBytes(HELLO_AUDIO_SRC);
+  blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+  return blobUrl;
+}
+
+function getCtx() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!ctx) ctx = new AC();
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function decodeBuf() {
+  if (audioBuf) return Promise.resolve(audioBuf);
+  if (decodeP) return decodeP;
+  const ac = getCtx();
+  if (!ac || typeof HELLO_AUDIO_SRC !== 'string') {
+    return Promise.reject(new Error('no decoder'));
+  }
+  const bytes = dataToBytes(HELLO_AUDIO_SRC);
+  decodeP = ac.decodeAudioData(bytes.buffer.slice(0)).then((buf) => {
+    audioBuf = buf;
+    return buf;
+  }).catch((err) => {
+    decodeP = null;
+    throw err;
+  });
+  return decodeP;
+}
+
+function playBuffer() {
+  const ac = getCtx();
+  if (!ac || !audioBuf) return false;
+  const src = ac.createBufferSource();
+  src.buffer = audioBuf;
+  src.connect(ac.destination);
+  src.onended = () => nose.classList.remove('playing');
+  src.start(0);
+  return true;
+}
+
+function playElement() {
+  const url = blobSrc();
+  if (url && clip.src !== url) clip.src = url;
+  try { clip.muted = false; clip.volume = 1; } catch (_) {}
+  try { clip.currentTime = 0; } catch (_) {}
+  const p = clip.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+function playOnce() {
+  getCtx();
+  nose.classList.add('playing');
+  playCount += 1;
+  decodeBuf().then(() => {
+    if (!playBuffer()) playElement();
+  }).catch(() => playElement());
+  if (notifyBox.checked) pingNotify();
+}
+
+clip.addEventListener('ended', () => nose.classList.remove('playing'));
 
 function loadSettings() {
   try {
@@ -61,33 +137,6 @@ function syncModeUi() {
 function setStatus(text) {
   statusEl.textContent = text;
 }
-
-function unlock() {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC && !ctx) ctx = new AC();
-    if (ctx && ctx.state === 'suspended') ctx.resume();
-  } catch (_) {}
-}
-
-function playOnce() {
-  unlock();
-  if (!clip.src && typeof HELLO_AUDIO_SRC === 'string') clip.src = HELLO_AUDIO_SRC;
-  try {
-    clip.pause();
-    clip.currentTime = 0;
-  } catch (_) {}
-  const p = clip.play();
-  nose.classList.add('playing');
-  if (p && p.catch) {
-    p.catch((err) => setStatus('No audio: ' + (err && err.message ? err.message : 'blocked')));
-  }
-  playCount += 1;
-  if (notifyBox.checked) pingNotify();
-}
-
-clip.addEventListener('ended', () => nose.classList.remove('playing'));
-clip.addEventListener('error', () => setStatus('Audio element failed to load.'));
 
 async function pingNotify() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -146,7 +195,7 @@ async function releaseWake() {
 
 async function startTimer() {
   saveSettings();
-  unlock();
+  getCtx();
   if (mode === 'random' && Number(maxSec.value) < Number(minSec.value)) {
     setStatus('Max must be ≥ min.');
     return;
@@ -188,19 +237,31 @@ document.querySelectorAll('input[name="mode"]').forEach((el) => {
   el.addEventListener('change', saveSettings);
 });
 
-nose.addEventListener('click', () => {
+let lastTap = 0;
+function onNose() {
+  const now = Date.now();
+  if (now - lastTap < 280) return;
+  lastTap = now;
   playOnce();
   if (!timerId) setStatus('Hello');
-});
+}
+
+nose.addEventListener('pointerup', onNose);
+nose.addEventListener('click', onNose);
 
 startBtn.addEventListener('click', startTimer);
 stopBtn.addEventListener('click', () => stopTimer());
 
 document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') getCtx();
   if (document.visibilityState === 'visible' && timerId && wakeBox.checked) acquireWake();
 });
 
 loadSettings();
+
+if (typeof HELLO_AUDIO_SRC === 'string') {
+  try { clip.src = blobSrc(); clip.load(); } catch (_) {}
+}
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
