@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121214">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hello">
+  <title>Hello Nose</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/nose.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/nose.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hdr">
+      <h1>Hello</h1>
+      <p class="sub">Motorola notification · Justin McGrath</p>
+    </header>
+
+    <button id="nose" class="nose" type="button" aria-label="Play Hello">
+      <span class="nose-ball" aria-hidden="true"></span>
+    </button>
+
+    <p id="status" class="status" role="status">Tap the nose.</p>
+
+    <section class="panel" aria-label="Timer">
+      <fieldset class="modes">
+        <legend>Timer</legend>
+        <label><input type="radio" name="mode" value="interval" checked> Every</label>
+        <label><input type="radio" name="mode" value="random"> Random</label>
+      </fieldset>
+
+      <div id="interval-fields" class="row">
+        <label>Seconds
+          <input id="every-sec" type="number" min="1" max="86400" step="1" value="30">
+        </label>
+      </div>
+
+      <div id="random-fields" class="row hidden">
+        <label>Min s
+          <input id="min-sec" type="number" min="1" max="86400" step="1" value="15">
+        </label>
+        <label>Max s
+          <input id="max-sec" type="number" min="1" max="86400" step="1" value="90">
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Run for minutes <span class="hint">(0 = until stop)</span>
+          <input id="run-min" type="number" min="0" max="1440" step="1" value="0">
+        </label>
+      </div>
+
+      <div class="row actions">
+        <button id="start" type="button" class="btn primary">Start timer</button>
+        <button id="stop" type="button" class="btn" disabled>Stop</button>
+      </div>
+
+      <label class="check">
+        <input id="notify" type="checkbox">
+        Notify on each play
+      </label>
+      <label class="check">
+        <input id="wakelock" type="checkbox" checked>
+        Keep screen awake while timing
+      </label>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

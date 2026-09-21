@@ -1,0 +1,20 @@
+{
+  "name": "Hello Nose",
+  "short_name": "Hello",
+  "description": "Single-button soundboard for the Motorola Hello notification.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121214",
+  "theme_color": "#121214",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icons/nose.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
