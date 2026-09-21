@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#121214">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Red Nose">
-  <title>Red Nose</title>
+  <meta name="apple-mobile-web-app-title" content="Hello">
+  <title>Hello Nose</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/nose.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/nose.svg">
@@ -16,7 +16,7 @@
 <body>
   <main class="wrap">
     <header class="hdr">
-      <h1>Red Nose</h1>
+      <h1>Hello</h1>
       <p class="sub">Motorola notification · Justin McGrath</p>
     </header>
 
@@ -69,6 +69,8 @@
       </label>
     </section>
   </main>
-  <script type="module" src="app.js"></script>
+  <audio id="hello-audio" preload="auto" playsinline></audio>
+  <script src="hello-audio.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

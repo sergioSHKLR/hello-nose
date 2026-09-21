@@ -1,5 +1,3 @@
-import { HELLO_AUDIO_B64, HELLO_AUDIO_MIME } from './hello-audio.js';
-
 const $ = (id) => document.getElementById(id);
 
 const nose = $('nose');
@@ -14,23 +12,17 @@ const notifyBox = $('notify');
 const wakeBox = $('wakelock');
 const intervalFields = $('interval-fields');
 const randomFields = $('random-fields');
+const clip = $('hello-audio');
+if (typeof HELLO_AUDIO_SRC === 'string') clip.src = HELLO_AUDIO_SRC;
 
 const KEY = 'hello-nose-settings-v1';
 
-let audio;
 let timerId = null;
 let runUntil = 0;
 let wakeLock = null;
 let playCount = 0;
 let mode = 'interval';
-
-function b64ToUrl() {
-  const bin = atob(HELLO_AUDIO_B64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const blob = new Blob([bytes], { type: HELLO_AUDIO_MIME });
-  return URL.createObjectURL(blob);
-}
+let ctx;
 
 function loadSettings() {
   try {
@@ -42,7 +34,7 @@ function loadSettings() {
     if (s.run != null) runMin.value = s.run;
     if (s.notify != null) notifyBox.checked = s.notify;
     if (s.wake != null) wakeBox.checked = s.wake;
-  } catch (_) { /* ignore */ }
+  } catch (_) {}
   document.querySelectorAll('input[name="mode"]').forEach((el) => {
     el.checked = el.value === mode;
   });
@@ -70,24 +62,32 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
-function ensureAudio() {
-  if (!audio) {
-    audio = new Audio(b64ToUrl());
-    audio.preload = 'auto';
-    audio.addEventListener('ended', () => nose.classList.remove('playing'));
-  }
-  return audio;
+function unlock() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC && !ctx) ctx = new AC();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  } catch (_) {}
 }
 
 function playOnce() {
-  const a = ensureAudio();
-  a.currentTime = 0;
-  const p = a.play();
+  unlock();
+  if (!clip.src && typeof HELLO_AUDIO_SRC === 'string') clip.src = HELLO_AUDIO_SRC;
+  try {
+    clip.pause();
+    clip.currentTime = 0;
+  } catch (_) {}
+  const p = clip.play();
   nose.classList.add('playing');
-  if (p && p.catch) p.catch(() => setStatus('Playback blocked until you tap the nose.'));
+  if (p && p.catch) {
+    p.catch((err) => setStatus('No audio: ' + (err && err.message ? err.message : 'blocked')));
+  }
   playCount += 1;
   if (notifyBox.checked) pingNotify();
 }
+
+clip.addEventListener('ended', () => nose.classList.remove('playing'));
+clip.addEventListener('error', () => setStatus('Audio element failed to load.'));
 
 async function pingNotify() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -103,7 +103,7 @@ async function pingNotify() {
     };
     if (reg) await reg.showNotification('Hello', opts);
     else new Notification('Hello', opts);
-  } catch (_) { /* ignore */ }
+  } catch (_) {}
 }
 
 function nextDelayMs() {
@@ -123,8 +123,8 @@ function scheduleNext() {
   }
   const delay = nextDelayMs();
   const when = new Date(Date.now() + delay);
-  const left = runUntil ? ` · stop ${new Date(runUntil).toLocaleTimeString()}` : '';
-  setStatus(`Next ${when.toLocaleTimeString()}${left} · ${playCount} played`);
+  const left = runUntil ? ' · stop ' + new Date(runUntil).toLocaleTimeString() : '';
+  setStatus('Next ' + when.toLocaleTimeString() + left + ' · ' + playCount + ' played');
   timerId = setTimeout(() => {
     playOnce();
     scheduleNext();
@@ -136,16 +136,17 @@ async function acquireWake() {
   try {
     wakeLock = await navigator.wakeLock.request('screen');
     wakeLock.addEventListener('release', () => { wakeLock = null; });
-  } catch (_) { /* denied / unsupported */ }
+  } catch (_) {}
 }
 
 async function releaseWake() {
-  try { await wakeLock?.release(); } catch (_) { /* ignore */ }
+  try { if (wakeLock) await wakeLock.release(); } catch (_) {}
   wakeLock = null;
 }
 
 async function startTimer() {
   saveSettings();
+  unlock();
   if (mode === 'random' && Number(maxSec.value) < Number(minSec.value)) {
     setStatus('Max must be ≥ min.');
     return;
@@ -172,7 +173,7 @@ function stopTimer(reason) {
   stopBtn.disabled = true;
   nose.classList.remove('armed');
   releaseWake();
-  setStatus(reason || `Stopped · ${playCount} played`);
+  setStatus(reason || ('Stopped · ' + playCount + ' played'));
 }
 
 document.querySelectorAll('input[name="mode"]').forEach((el) => {
@@ -188,7 +189,6 @@ document.querySelectorAll('input[name="mode"]').forEach((el) => {
 });
 
 nose.addEventListener('click', () => {
-  ensureAudio();
   playOnce();
   if (!timerId) setStatus('Hello');
 });
@@ -203,5 +203,5 @@ document.addEventListener('visibilitychange', () => {
 loadSettings();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => { /* offline first not required */ });
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

@@ -1,10 +1,9 @@
-const CACHE = 'hello-nose-v1';
+const CACHE = 'hello-nose-v2';
 const PRECACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './hello-audio.js',
   './manifest.json',
   './icons/nose.svg',
 ];
