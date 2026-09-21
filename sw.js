@@ -5,6 +5,9 @@ const PRECACHE = [
   './styles.css',
   './app.js',
   './hello-audio.js',
+  './hello-audio-a.js',
+  './hello-audio-b.js',
+  './hello-audio-c.js',
   './manifest.json',
   './icons/nose.svg',
 ];
