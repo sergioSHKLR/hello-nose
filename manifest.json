@@ -1,6 +1,6 @@
 {
-  "name": "Hello Nose",
-  "short_name": "Hello",
+  "name": "Red Nose",
+  "short_name": "Red Nose",
   "description": "Single-button soundboard for the Motorola Hello notification.",
   "start_url": "./",
   "scope": "./",
