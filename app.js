@@ -94,15 +94,15 @@ async function pingNotify() {
   try {
     const reg = await navigator.serviceWorker.getRegistration();
     const opts = {
-      body: 'Hello',
+      body: "You're a clown!",
       icon: 'icons/nose.svg',
       badge: 'icons/nose.svg',
       silent: true,
       tag: 'hello-nose',
       renotify: false,
     };
-    if (reg) await reg.showNotification('Hello', opts);
-    else new Notification('Hello', opts);
+    if (reg) await reg.showNotification('Red Nose', opts);
+    else new Notification('Red Nose', opts);
   } catch (_) {}
 }
 
